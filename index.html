@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MendingMendung - Info Cuaca</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 30px;
+      background: linear-gradient(to bottom, #e0ecf4, #f8f8f8);
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.2em;
+    }
+    select, input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    .result-box {
+      margin-top: 20px;
+      text-align: left;
+      max-width: 600px;
+      margin-inline: auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .weather-icon {
+      width: 50px;
+      vertical-align: middle;
+    }
+    .loading {
+      font-style: italic;
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌦 MendingMendung 🌧</h1>
+  <p>Pilih kota dari daftar atau masukkan secara manual:</p>
+
+  <select id="citySelect">
+    <option value="">-- Pilih Kota --</option>
+    <option value="Jakarta">Jakarta</option>
+    <option value="Bandung">Bandung</option>
+    <option value="Surabaya">Surabaya</option>
+    <option value="Yogyakarta">Yogyakarta</option>
+    <option value="Denpasar">Denpasar</option>
+  </select>
+
+  <input type="text" id="cityInput" placeholder="Atau ketik kota lain..." />
+  <button onclick="getWeather()">Cari Cuaca Kota</button>
+  <button onclick="getSurabayaWeather()">Cuaca Surabaya</button>
+
+  <div class="result-box" id="weatherResult"></div>
+  <div class="result-box" id="surabayaWeatherResult"></div>
+
+  <script>
+    async function getWeather() {
+      const selected = document.getElementById('citySelect').value;
+      const typed = document.getElementById('cityInput').value;
+      const city = typed || selected;
+      const resultBox = document.getElementById('weatherResult');
+      const surabayaBox = document.getElementById('surabayaWeatherResult');
+
+      surabayaBox.innerHTML = '';
+      resultBox.innerHTML = '<p class="loading">Mengambil data cuaca...</p>';
+
+      if (!city) {
+        alert('Masukkan atau pilih nama kota terlebih dahulu.');
+        resultBox.innerHTML = '';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/weather?city=${encodeURIComponent(city)}`);
+        const data = await res.json();
+
+        if (data.error) {
+          resultBox.innerHTML = `<p>Gagal: ${data.error}</p>`;
+          return;
+        }
+
+        const icon = data.weather[0].icon;
+        const iconURL = `https://openweathermap.org/img/wn/${icon}@2x.png`;
+
+        resultBox.innerHTML = `
+          <h3>Cuaca di ${data.name} <img src="${iconURL}" alt="Ikon cuaca" class="weather-icon"></h3>
+          <p>Deskripsi: ${data.weather[0].description}</p>
+          <p>Suhu: ${data.main.temp} °C</p>
+          <p>Kelembapan: ${data.main.humidity}%</p>
+          <p>Kecepatan Angin: ${data.wind.speed} m/s</p>
+        `;
+      } catch (err) {
+        resultBox.innerHTML = '<p>Terjadi kesalahan saat mengambil data cuaca.</p>';
+      }
+    }
+
+    async function getSurabayaWeather() {
+      const resultBox = document.getElementById('surabayaWeatherResult');
+      const kotaBox = document.getElementById('weatherResult');
+      kotaBox.innerHTML = '';
+      resultBox.innerHTML = '<p class="loading">Mengambil data cuaca kecamatan Surabaya...</p>';
+
+      try {
+        const res = await fetch('/weather/surabaya');
+        const data = await res.json();
+
+        let html = '<h3>Cuaca Kecamatan di Surabaya</h3>';
+        data.forEach(item => {
+          if (item.error) {
+            html += `<p><strong>${item.kecamatan}</strong>: Gagal mengambil data.</p>`;
+          } else {
+            html += `<p><strong>${item.kecamatan}</strong>: ${item.cuaca}, Suhu: ${item.suhu} °C, Kelembapan: ${item.kelembapan}%, Angin: ${item.kecepatanAngin} m/s</p>`;
+          }
+        });
+
+        resultBox.innerHTML = html;
+      } catch (err) {
+        resultBox.innerHTML = '<p>Terjadi kesalahan saat mengambil data Surabaya.</p>';
+      }
+    }
+  </script>
+</body>
+</html>
